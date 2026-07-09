@@ -4,7 +4,7 @@ dotenv.config();
 export default {
   port: process.env.PORT || 3001,
   jwtSecret: process.env.JWT_SECRET || 'fallback_secret_change_me',
-  corsOrigins: ['http://localhost:5173', 'http://localhost:3001'],
+  corsOrigins: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:5173', 'http://localhost:3001', 'https://nexuslink-three.vercel.app'],
   upload: {
     maxSize: 50 * 1024 * 1024, // 50MB
     dir: './server/uploads',
