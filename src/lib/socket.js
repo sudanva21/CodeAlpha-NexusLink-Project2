@@ -9,7 +9,9 @@ export function connectSocket() {
   const token = getToken();
   if (!token) return null;
 
-  socket = io({
+  const SOCKET_URL = import.meta.env.PROD ? 'https://nexuslink-zjp3.onrender.com' : undefined;
+
+  socket = io(SOCKET_URL, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,

@@ -1,6 +1,7 @@
 import { getToken } from './router.js';
 
-const BASE_URL = '/api';
+const API_BASE = import.meta.env.PROD ? 'https://nexuslink-zjp3.onrender.com' : '';
+const BASE_URL = `${API_BASE}/api`;
 
 async function request(endpoint, options = {}) {
   const token = getToken();
