@@ -1023,11 +1023,18 @@ h1, h2, h3, h4, h5, h6 {
    PAGE: Room (Video Conference)
    ============================================================ */
 .room-page {
-  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
   overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
 }
 
 /* Room top bar */
@@ -1580,7 +1587,10 @@ h1, h2, h3, h4, h5, h6 {
   
   /* Modern Mobile Video Call UI */
   .room-page {
-    position: relative;
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    overflow: hidden;
   }
   
   .room-topbar {
@@ -1588,17 +1598,22 @@ h1, h2, h3, h4, h5, h6 {
     top: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(rgba(0,0,0,0.7), transparent);
+    background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0));
     border-bottom: none;
     z-index: 20;
     color: white;
+    padding-top: max(var(--space-2), env(safe-area-inset-top));
   }
   
-  .room-topbar-left h3, .room-id-badge { color: white; }
+  .room-topbar-left h3, .room-id-badge, .room-topbar-center .badge-success { color: white !important; }
+  .room-topbar-center .badge-success { background: rgba(255,255,255,0.2) !important; border: none; backdrop-filter: blur(4px); }
+  .room-topbar-left .btn, .room-topbar-right .btn { color: white !important; }
   .room-id-badge { background: rgba(255,255,255,0.2); backdrop-filter: blur(4px); border: none; }
   
   .room-body {
     background: #000;
+    height: 100%;
+    position: relative;
   }
   
   .video-area {
@@ -1612,6 +1627,7 @@ h1, h2, h3, h4, h5, h6 {
   .video-grid {
     padding: 0;
     gap: 0;
+    height: 100%;
   }
   
   /* 1-on-1 PiP Mode */
@@ -1621,7 +1637,8 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
   }
   
-  .video-grid[data-count="2"] .video-tile:first-child {
+  /* Make pinned tile fullscreen */
+  .video-tile.pinned {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     border-radius: 0;
@@ -1629,14 +1646,16 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 1;
     width: 100%;
     height: 100%;
+    box-shadow: none;
   }
-  
-  .video-grid[data-count="2"] .video-tile:last-child {
+
+  /* Make unpinned tiles PiP - positioned at TOP instead of bottom */
+  .video-grid[data-count="2"] .video-tile:not(.pinned) {
     position: absolute;
-    bottom: 120px;
+    top: 80px;
     right: 16px;
-    width: 100px;
-    height: 150px;
+    width: 110px;
+    height: 160px;
     border-radius: 12px;
     z-index: 10;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -1650,51 +1669,71 @@ h1, h2, h3, h4, h5, h6 {
     height: 100%;
   }
   
-  .video-tile-overlay {
-    background: transparent;
+  /* Move video overlay to top for fullscreen videos */
+  .video-tile.pinned .video-tile-overlay, 
+  .video-grid[data-count="1"] .video-tile .video-tile-overlay {
+    top: 80px;
+    bottom: auto;
+    background: linear-gradient(rgba(0,0,0,0.5), transparent);
+    align-items: flex-start;
+  }
+  
+  /* Compact overlay for PiP */
+  .video-grid[data-count="2"] .video-tile:not(.pinned) .video-tile-overlay {
+    padding: var(--space-1) var(--space-2);
+    top: auto;
+    bottom: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  }
+  .video-grid[data-count="2"] .video-tile:not(.pinned) .video-tile-name {
+    font-size: 10px;
   }
   
   /* Floating Controls */
   .room-controls {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.8));
-    border-top: none;
-    padding: var(--space-4) var(--space-3) 24px var(--space-3);
+    bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    border-radius: var(--radius-full);
+    background: rgba(30, 30, 30, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
     z-index: 20;
-    gap: var(--space-3);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
-  
+
   .control-btn {
-    background: rgba(255,255,255,0.2);
-    backdrop-filter: blur(8px);
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.1);
     border: none;
     color: white;
-    width: 50px;
-    height: 50px;
-    font-size: 20px;
   }
   
-  .control-btn.active {
-    background: white;
-    color: var(--text-primary);
+  .control-btn:hover, .control-btn.active {
+    background: rgba(255,255,255,0.2);
   }
-  
+
   .control-btn.muted {
     background: var(--error);
     color: white;
   }
   
   .control-btn.end-call {
-    background: var(--error);
-    width: 60px;
+    width: 44px;
   }
   
   .control-divider {
+    height: 24px;
     background: rgba(255,255,255,0.2);
   }
+
+
   
   /* Bottom Sheet Side Panel */
   .side-panel {

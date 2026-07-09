@@ -148,6 +148,15 @@ export async function renderRoom(app, params) {
 
   // --- Control bar event handlers ---
   setupControls(roomId, socket, user);
+  
+  // Add click to pin on local tile
+  const localTile = document.getElementById('local-tile');
+  if (localTile) {
+    localTile.addEventListener('click', () => {
+      document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned'));
+      localTile.classList.add('pinned');
+    });
+  }
 
   // Cleanup function
   return () => {
@@ -226,7 +235,7 @@ function buildRoomHTML(room, user) {
       <div class="room-body">
         <div class="video-area">
           <div class="video-grid" id="video-grid" data-count="1">
-            <div class="video-tile local" id="local-tile">
+            <div class="video-tile local pinned" id="local-tile">
               <video id="local-video" autoplay muted playsinline></video>
               <div class="video-tile-overlay">
                 <span class="video-tile-name">You (${escapeHtml(user.username)})</span>
@@ -707,6 +716,17 @@ function addRemoteVideo(socketId, stream) {
   const video = tile.querySelector('video');
   video.srcObject = stream;
   grid.appendChild(tile);
+  
+  // Make remote video pinned by default when they join
+  document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned'));
+  tile.classList.add('pinned');
+  
+  // Add click to pin
+  tile.addEventListener('click', () => {
+    document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned'));
+    tile.classList.add('pinned');
+  });
+
   updateVideoGridLayout();
 }
 
