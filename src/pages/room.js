@@ -572,15 +572,31 @@ function togglePanel(panel) {
   const participantsPanel = document.getElementById('participants-panel');
   const filesPanel = document.getElementById('files-panel');
   const title = document.getElementById('panel-title');
+  const roomPage = document.querySelector('.room-page');
 
   if (currentPanel === panel || panel === null) {
-    sidePanel.style.display = 'none';
+    if (window.innerWidth <= 768) {
+      sidePanel.classList.remove('open');
+      if (roomPage) roomPage.classList.remove('panel-open');
+      setTimeout(() => {
+        if (currentPanel === null) sidePanel.style.display = 'none';
+      }, 300);
+    } else {
+      sidePanel.style.display = 'none';
+    }
     currentPanel = null;
     return;
   }
 
   currentPanel = panel;
   sidePanel.style.display = 'flex';
+  
+  if (window.innerWidth <= 768) {
+    setTimeout(() => {
+      sidePanel.classList.add('open');
+      if (roomPage) roomPage.classList.add('panel-open');
+    }, 10);
+  }
 
   chatPanel.style.display = 'none';
   chatInput.style.display = 'none';
