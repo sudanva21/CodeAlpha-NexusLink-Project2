@@ -99,9 +99,13 @@ export function renderAuth(app) {
 
         setAuth(result.token, result.user);
         
-        const redirect = sessionStorage.getItem('redirect_after_login');
+        let redirect = null;
+        try {
+          redirect = sessionStorage.getItem('redirect_after_login');
+          if (redirect) sessionStorage.removeItem('redirect_after_login');
+        } catch (e) {}
+
         if (redirect) {
-          sessionStorage.removeItem('redirect_after_login');
           window.location.hash = redirect;
         } else {
           navigateTo('/dashboard');

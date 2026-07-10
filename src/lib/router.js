@@ -70,9 +70,11 @@ function matchRoute(pattern, path) {
 }
 
 export function requireAuth() {
-  const token = localStorage.getItem('nexuslink_token');
+  const token = getToken();
   if (!token) {
-    sessionStorage.setItem('redirect_after_login', window.location.hash);
+    try {
+      sessionStorage.setItem('redirect_after_login', window.location.hash);
+    } catch (e) {}
     navigateTo('/auth');
     return false;
   }
@@ -80,20 +82,34 @@ export function requireAuth() {
 }
 
 export function getUser() {
-  const userStr = localStorage.getItem('nexuslink_user');
-  return userStr ? JSON.parse(userStr) : null;
+  try {
+    const userStr = localStorage.getItem('nexuslink_user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export function setAuth(token, user) {
-  localStorage.setItem('nexuslink_token', token);
-  localStorage.setItem('nexuslink_user', JSON.stringify(user));
+  try {
+    localStorage.setItem('nexuslink_token', token);
+    localStorage.setItem('nexuslink_user', JSON.stringify(user));
+  } catch (e) {
+    console.warn('localStorage is blocked');
+  }
 }
 
 export function clearAuth() {
-  localStorage.removeItem('nexuslink_token');
-  localStorage.removeItem('nexuslink_user');
+  try {
+    localStorage.removeItem('nexuslink_token');
+    localStorage.removeItem('nexuslink_user');
+  } catch (e) {}
 }
 
 export function getToken() {
-  return localStorage.getItem('nexuslink_token');
+  try {
+    return localStorage.getItem('nexuslink_token');
+  } catch (e) {
+    return null;
+  }
 }
