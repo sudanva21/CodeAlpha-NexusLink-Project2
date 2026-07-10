@@ -1,4 +1,4 @@
-import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js';
+import { io } from 'socket.io-client';
 import { getToken } from './router.js';
 
 let socket = null;
