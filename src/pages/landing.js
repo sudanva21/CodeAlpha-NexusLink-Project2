@@ -9,13 +9,6 @@ export function renderLanding(app) {
 
   app.innerHTML = `
     <div class="landing-page">
-      <div class="landing-bg">
-        <div class="dot-grid"></div>
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-      </div>
-
       <nav class="landing-nav" id="landing-nav">
         <div class="nav-logo">
           <div class="nav-logo-icon">N</div>

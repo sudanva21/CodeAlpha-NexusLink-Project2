@@ -1,6 +1,8 @@
 // NexusLink — Main Entry Point
 import './styles/index.css';
 import './styles/whiteboard.css';
+import './styles/background.css';
+import { initBackground } from './lib/background.js';
 import { registerRoute, initRouter } from './lib/router.js';
 import { renderLanding } from './pages/landing.js';
 import { renderAuth } from './pages/auth.js';
@@ -12,6 +14,9 @@ registerRoute('/', renderLanding);
 registerRoute('/auth', renderAuth);
 registerRoute('/dashboard', renderDashboard);
 registerRoute('/room/:id', renderRoom);
+
+// Initialize global UI elements
+initBackground();
 
 // Initialize router
 initRouter();
