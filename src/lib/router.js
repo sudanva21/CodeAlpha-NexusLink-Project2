@@ -12,7 +12,8 @@ export function navigateTo(path) {
 }
 
 export function getCurrentPath() {
-  return window.location.hash.slice(1) || '/';
+  const hash = window.location.hash.slice(1) || '/';
+  return hash.split('?')[0];
 }
 
 export function initRouter() {
@@ -68,10 +69,10 @@ function matchRoute(pattern, path) {
   return params;
 }
 
-// Auth guard
 export function requireAuth() {
   const token = localStorage.getItem('nexuslink_token');
   if (!token) {
+    sessionStorage.setItem('redirect_after_login', window.location.hash);
     navigateTo('/auth');
     return false;
   }

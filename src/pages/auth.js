@@ -98,7 +98,14 @@ export function renderAuth(app) {
         }
 
         setAuth(result.token, result.user);
-        navigateTo('/dashboard');
+        
+        const redirect = sessionStorage.getItem('redirect_after_login');
+        if (redirect) {
+          sessionStorage.removeItem('redirect_after_login');
+          window.location.hash = redirect;
+        } else {
+          navigateTo('/dashboard');
+        }
       } catch (err) {
         errorEl.className = 'auth-error';
         errorEl.textContent = err.message;
