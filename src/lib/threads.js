@@ -219,7 +219,9 @@ export class Threads {
 
   update(t) {
     this.animationFrameId = requestAnimationFrame(this.update);
-    if (!this.isVisible || document.hidden) return;
+    
+    // Pause rendering if tab is hidden or if user is in a video call to save performance
+    if (!this.isVisible || document.hidden || window.location.hash.startsWith('#/room')) return;
 
     if (this.config.enableMouseInteraction) {
       const smoothing = 0.05;
@@ -254,6 +256,11 @@ export class Threads {
 // Helper to inject the Threads background globally
 export function initThreadsBackground() {
   if (document.getElementById('nexuslink-threads-bg')) return;
+  
+  // Disable threads entirely on mobile devices for performance
+  if (window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    return;
+  }
   
   const bgWrapper = document.createElement('div');
   bgWrapper.id = 'nexuslink-threads-bg';
