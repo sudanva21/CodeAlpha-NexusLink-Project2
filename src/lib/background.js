@@ -32,7 +32,7 @@ function createFloatingPaths(position) {
     const p5x = 684 - i * 5 * position;
     const p5y = 875 - i * 6;
     
-    const d = \`M-\${p1x} -\${p1y}C-\${p1x} -\${p1y} -\${p2x} \${p2y} \${p3x} \${p3y}C\${p4x} \${p4y} \${p5x} \${p5y} \${p5x} \${p5y}\`;
+    const d = `M-${p1x} -${p1y}C-${p1x} -${p1y} -${p2x} ${p2y} ${p3x} ${p3y}C${p4x} ${p4y} ${p5x} ${p5y} ${p5x} ${p5y}`;
     
     const width = 0.5 + i * 0.03;
     const baseOpacity = 0.1 + i * 0.03;
@@ -44,7 +44,7 @@ function createFloatingPaths(position) {
     path.setAttribute('pathLength', '1'); // For stroke-dasharray animation
     
     // Set custom CSS variables for the animation
-    path.style.setProperty('--duration', \`\${duration}s\`);
+    path.style.setProperty('--duration', `${duration}s`);
     path.style.setProperty('--base-opacity', baseOpacity);
     
     svg.appendChild(path);
