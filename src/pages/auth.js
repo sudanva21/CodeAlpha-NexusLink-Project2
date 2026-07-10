@@ -13,12 +13,7 @@ export function renderAuth(app) {
   function render() {
     app.innerHTML = `
       <div class="auth-page">
-        <div class="landing-bg">
-          <div class="dot-grid"></div>
-          <div class="blob blob-1"></div>
-          <div class="blob blob-2"></div>
-          <div class="blob blob-3"></div>
-        </div>
+
 
         <a href="#/" class="auth-back btn btn-ghost">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -1,0 +1,16 @@
+.threads-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-color: var(--bg-primary);
+  /* The canvas will be appended here by the Threads class */
+}
+
+/* Ensure the canvas fills the container */
+.threads-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

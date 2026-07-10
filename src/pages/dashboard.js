@@ -77,7 +77,7 @@ export function renderDashboard(app) {
         </div>
         <div class="dash-nav-right">
           <div class="dash-user">
-            <div class="avatar avatar-md" style="background: ${user.avatar?.color || '#5B4FD6'}">
+            <div class="avatar avatar-md" style="background: ${user.avatar?.color || 'var(--bg-tertiary)'}">
               ${user.avatar?.initials || user.username?.slice(0, 2).toUpperCase()}
             </div>
             <span class="dash-user-name">${escapeHtml(user.username)}</span>

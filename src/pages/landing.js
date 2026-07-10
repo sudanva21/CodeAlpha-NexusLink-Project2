@@ -1,4 +1,5 @@
 import { navigateTo, getToken } from '../lib/router.js';
+import { gsap } from 'gsap';
 
 export function renderLanding(app) {
   // If already logged in, go to dashboard
@@ -26,8 +27,17 @@ export function renderLanding(app) {
           Real-time collaboration, redefined
         </div>
         <h1>
-          Connect. Collaborate.<br/>
-          <span class="accent">Create Together.</span>
+          <span class="split-text-target">Connect.</span> <span class="split-text-target">Collaborate.</span><br/>
+          <div class="true-focus-container" id="true-focus-container">
+            <span class="focus-word accent">Create</span>
+            <span class="focus-word accent">Together.</span>
+            <div class="focus-frame" id="focus-frame">
+              <span class="corner top-left"></span>
+              <span class="corner top-right"></span>
+              <span class="corner bottom-left"></span>
+              <span class="corner bottom-right"></span>
+            </div>
+          </div>
         </h1>
         <p>
           Video conferencing, screen sharing, file exchange, and a collaborative whiteboard — 
@@ -45,11 +55,15 @@ export function renderLanding(app) {
       </section>
 
       <section class="features-section" id="features">
-        <h2>Everything you need</h2>
-        <p class="section-sub">Powerful features for seamless remote collaboration</p>
+        <div class="features-content">
+          <div class="features-text">
+            <h2>Everything you need</h2>
+            <p class="section-sub">Powerful features for seamless remote collaboration</p>
+          </div>
 
-        <div class="features-grid">
-          <div class="feature-card">
+        <div class="card-swap-wrapper">
+          <div class="card-swap-container" id="card-swap-container">
+            <div class="feature-card card">
             <div class="feature-icon violet">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="23 7 16 12 23 17 23 7"/>
@@ -60,7 +74,7 @@ export function renderLanding(app) {
             <p>Crystal-clear video calls with up to 6 participants. Adaptive quality ensures smooth streaming on any connection.</p>
           </div>
 
-          <div class="feature-card">
+          <div class="feature-card card">
             <div class="feature-icon coral">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
@@ -72,7 +86,7 @@ export function renderLanding(app) {
             <p>Share your entire screen or a specific window. Perfect for presentations, code reviews, and demos.</p>
           </div>
 
-          <div class="feature-card">
+          <div class="feature-card card">
             <div class="feature-icon teal">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 19l7-7 3 3-7 7-3-3z"/>
@@ -85,7 +99,7 @@ export function renderLanding(app) {
             <p>Collaborative drawing canvas with pens, shapes, and colors. Changes sync instantly across all participants.</p>
           </div>
 
-          <div class="feature-card">
+          <div class="feature-card card">
             <div class="feature-icon amber">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
@@ -96,7 +110,7 @@ export function renderLanding(app) {
             <p>Share documents, images, and files up to 50MB. Everyone in the room can download shared files instantly.</p>
           </div>
 
-          <div class="feature-card">
+          <div class="feature-card card">
             <div class="feature-icon green">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -107,7 +121,7 @@ export function renderLanding(app) {
             <p>All messages are encrypted with AES-256-GCM before transmission. Your conversations stay private.</p>
           </div>
 
-          <div class="feature-card">
+          <div class="feature-card card">
             <div class="feature-icon blue">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -118,6 +132,8 @@ export function renderLanding(app) {
             </div>
             <h3>Secure Auth</h3>
             <p>JWT-based authentication with bcrypt password hashing. Your account is protected with industry standards.</p>
+          </div>
+            </div>
           </div>
         </div>
       </section>
@@ -139,7 +155,201 @@ export function renderLanding(app) {
   };
   window.addEventListener('scroll', onScroll);
 
+  // SplitText Animation for Hero Section
+  const splitTargets = app.querySelectorAll('.split-text-target');
+  
+  splitTargets.forEach(target => {
+    const text = target.textContent;
+    target.textContent = ''; // clear original text
+    
+    // Split into characters and wrap in spans
+    const chars = text.split('').map(char => {
+      const span = document.createElement('span');
+      span.textContent = char;
+      // Preserve spaces
+      if (char === ' ') {
+        span.innerHTML = '&nbsp;';
+      }
+      span.style.display = 'inline-block';
+      span.style.willChange = 'transform, opacity';
+      target.appendChild(span);
+      return span;
+    });
+
+    // Apply the GSAP stagger animation
+    gsap.fromTo(chars, 
+      { opacity: 0, y: 40 }, 
+      { 
+        opacity: 1, 
+        y: 0, 
+        duration: 0.6, 
+        ease: 'power3.out', 
+        stagger: 0.1, 
+        force3D: true,
+        delay: 0.2 
+      }
+    );
+  });
+
+  // CardSwap Animation Logic
+  const swapContainer = document.getElementById('card-swap-container');
+  const cards = Array.from(swapContainer.querySelectorAll('.card'));
+  
+  const cardDistance = 60;
+  const verticalDistance = 70;
+  const delay = 3000;
+  const skewAmount = 6;
+  
+  const config = {
+    ease: 'power3.inOut',
+    durDrop: 0.8,
+    durMove: 0.8,
+    durReturn: 0.8,
+    promoteOverlap: 0.8,
+    returnDelay: 0.1
+  };
+
+  const makeSlot = (i, distX, distY, total) => ({
+    x: i * distX,
+    y: -i * distY,
+    z: -i * distX * 1.5,
+    zIndex: total - i
+  });
+
+  const placeNow = (el, slot, skew) =>
+    gsap.set(el, {
+      x: slot.x,
+      y: slot.y,
+      z: slot.z,
+      xPercent: -50,
+      yPercent: -50,
+      skewY: skew,
+      transformOrigin: 'center center',
+      zIndex: slot.zIndex,
+      force3D: true
+    });
+
+  let order = Array.from({ length: cards.length }, (_, i) => i);
+  let tl;
+  
+  const total = cards.length;
+  cards.forEach((card, i) => placeNow(card, makeSlot(i, cardDistance, verticalDistance, total), skewAmount));
+
+  const swap = () => {
+    if (order.length < 2) return;
+    const [front, ...rest] = order;
+    const elFront = cards[front];
+    
+    tl = gsap.timeline();
+
+    tl.to(elFront, {
+      y: '+=500',
+      duration: config.durDrop,
+      ease: config.ease
+    });
+
+    tl.addLabel('promote', `-=${config.durDrop * config.promoteOverlap}`);
+    rest.forEach((idx, i) => {
+      const el = cards[idx];
+      const slot = makeSlot(i, cardDistance, verticalDistance, cards.length);
+      tl.set(el, { zIndex: slot.zIndex }, 'promote');
+      tl.to(
+        el,
+        {
+          x: slot.x,
+          y: slot.y,
+          z: slot.z,
+          duration: config.durMove,
+          ease: config.ease
+        },
+        `promote+=${i * 0.15}`
+      );
+    });
+
+    const backSlot = makeSlot(cards.length - 1, cardDistance, verticalDistance, cards.length);
+    tl.addLabel('return', `promote+=${config.durMove * config.returnDelay}`);
+    tl.call(
+      () => {
+        gsap.set(elFront, { zIndex: backSlot.zIndex });
+      },
+      undefined,
+      'return'
+    );
+    tl.to(
+      elFront,
+      {
+        x: backSlot.x,
+        y: backSlot.y,
+        z: backSlot.z,
+        duration: config.durReturn,
+        ease: config.ease
+      },
+      'return'
+    );
+
+    tl.call(() => {
+      order = [...rest, front];
+    });
+  };
+
+  swap();
+  
+  // Clean up any existing interval before creating a new one
+  if (window.landingSwapInterval) clearInterval(window.landingSwapInterval);
+  window.landingSwapInterval = setInterval(swap, delay);
+
+  // Initialize TrueFocus for hero section for "Create Together."
+  const tfContainer = document.getElementById('true-focus-container');
+  const tfWords = tfContainer.querySelectorAll('.focus-word');
+  const tfFrame = document.getElementById('focus-frame');
+  
+  let currentIndex = 0;
+  const blurAmount = 5;
+  const animationDuration = 2;
+  const pauseBetweenAnimations = 1;
+  const manualMode = false;
+  
+  tfContainer.style.setProperty('--border-color', 'red');
+  tfContainer.style.setProperty('--glow-color', 'rgba(255, 0, 0, 0.6)');
+  
+  function updateFocus() {
+    if (!tfWords[currentIndex]) return;
+    const parentRect = tfContainer.getBoundingClientRect();
+    const activeRect = tfWords[currentIndex].getBoundingClientRect();
+    
+    tfFrame.style.opacity = '1';
+    tfFrame.style.transform = `translate(${activeRect.left - parentRect.left}px, ${activeRect.top - parentRect.top}px)`;
+    tfFrame.style.width = `${activeRect.width}px`;
+    tfFrame.style.height = `${activeRect.height}px`;
+    tfFrame.style.transition = `transform ${animationDuration}s ease, width ${animationDuration}s ease, height ${animationDuration}s ease, opacity ${animationDuration}s ease`;
+    
+    tfWords.forEach((word, idx) => {
+      const isActive = idx === currentIndex;
+      word.classList.toggle('active', isActive && !manualMode);
+      word.style.filter = isActive ? `blur(0px)` : `blur(${blurAmount}px)`;
+      word.style.transition = `filter ${animationDuration}s ease`;
+    });
+  }
+  
+  // Initial frame calc
+  requestAnimationFrame(updateFocus);
+  
+  let tfInterval;
+  if (!manualMode) {
+    tfInterval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % tfWords.length;
+      updateFocus();
+    }, (animationDuration + pauseBetweenAnimations) * 1000);
+  }
+  
+  const tfResizeHandler = () => {
+    updateFocus();
+  };
+  window.addEventListener('resize', tfResizeHandler);
+
   return () => {
     window.removeEventListener('scroll', onScroll);
+    if (tfInterval) clearInterval(tfInterval);
+    window.removeEventListener('resize', tfResizeHandler);
   };
 }

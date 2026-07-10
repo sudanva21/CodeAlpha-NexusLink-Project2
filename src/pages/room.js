@@ -651,7 +651,7 @@ function appendChatMessage(msg) {
   if (!container) return;
 
   const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const avatarColor = msg.from?.avatar?.color || '#5B4FD6';
+  const avatarColor = msg.from?.avatar?.color || 'var(--bg-tertiary)';
   const initials = msg.from?.avatar?.initials || msg.from?.username?.slice(0, 2).toUpperCase() || '??';
 
   const msgEl = document.createElement('div');
@@ -676,7 +676,7 @@ function updateParticipantsList(participants) {
   if (!container) return;
 
   container.innerHTML = participants.map((p) => {
-    const color = p.avatar?.color || '#5B4FD6';
+    const color = p.avatar?.color || 'var(--bg-tertiary)';
     const initials = p.avatar?.initials || p.username?.slice(0, 2).toUpperCase() || '??';
     return `
       <div class="participant-item">
