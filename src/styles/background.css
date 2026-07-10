@@ -41,7 +41,7 @@
   width: 100vw;
   height: 100vh;
   z-index: -1;
-  background-color: transparent;
+  background-color: var(--bg-primary);
   color: #020617; /* text-slate-950 for light mode */
 }
 
