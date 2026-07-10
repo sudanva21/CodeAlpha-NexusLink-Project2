@@ -1787,11 +1787,14 @@ h1, h2, h3, h4, h5, h6 {
   .video-grid:has(.screen-share) {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    grid-template-rows: 1fr 120px !important;
+    grid-template-rows: 1fr 100px !important;
+    grid-auto-columns: 140px;
     grid-auto-flow: column;
     overflow-x: auto;
-    align-content: stretch;
-    padding-bottom: 80px;
+    overflow-y: hidden;
+    padding-bottom: 85px !important; /* Space for controls */
+    height: 100% !important;
+    box-sizing: border-box !important;
   }
   .video-grid:has(.screen-share) .video-tile.screen-share {
     grid-column: 1 / -1 !important;
@@ -1805,11 +1808,11 @@ h1, h2, h3, h4, h5, h6 {
   .video-grid:has(.screen-share) .video-tile:not(.screen-share) {
     grid-row: 2 / 3 !important;
     grid-column: auto !important;
-    width: 160px;
-    height: 100px;
+    width: 140px !important;
+    height: 90px !important;
     position: relative !important;
     border-radius: var(--radius-md) !important;
-    margin: 8px 4px !important;
+    margin: 4px !important;
     z-index: 2 !important;
     box-shadow: var(--shadow-md);
   }
