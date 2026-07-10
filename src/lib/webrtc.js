@@ -21,11 +21,13 @@ export function setCallbacks({ onRemoteStream, onRemoteStreamRemoved, onScreenSh
   onScreenShareCallback = onScreenShare;
 }
 
+let currentFacingMode = 'user';
+
 // Get local media
 export async function getLocalStream(video = true, audio = true) {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
-      video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
+      video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: currentFacingMode } : false,
       audio: audio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
     });
     return localStream;
@@ -68,6 +70,47 @@ export function toggleCamera() {
     return videoTrack.enabled;
   }
   return false;
+}
+
+// Flip Camera
+export async function flipCamera() {
+  if (!localStream || screenStream) return false;
+  
+  const videoTrack = localStream.getVideoTracks()[0];
+  if (!videoTrack) return false;
+
+  currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacingMode },
+    });
+    
+    const newVideoTrack = newStream.getVideoTracks()[0];
+    
+    // Replace track in all peer connections
+    for (const [, peer] of peers) {
+      const sender = peer.pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(newVideoTrack);
+      }
+    }
+    
+    // Replace track in localStream
+    localStream.removeTrack(videoTrack);
+    localStream.addTrack(newVideoTrack);
+    videoTrack.stop();
+    
+    // Need to trigger a visual update if local video element is bound to this stream
+    // but the stream reference hasn't changed, only the track. Usually the video element
+    // automatically updates when tracks change within the stream.
+    
+    return true;
+  } catch (err) {
+    console.error('Failed to flip camera:', err);
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    return false;
+  }
 }
 
 // Screen share

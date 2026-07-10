@@ -2,7 +2,7 @@ import { api } from '../lib/api.js';
 import { navigateTo, requireAuth, getUser } from '../lib/router.js';
 import { getSocket, connectSocket, disconnectSocket } from '../lib/socket.js';
 import {
-  getLocalStream, toggleMic, toggleCamera, startScreenShare, stopScreenShare,
+  getLocalStream, toggleMic, toggleCamera, flipCamera, startScreenShare, stopScreenShare,
   isScreenSharing, callPeer, handleOffer, handleAnswer, handleIceCandidate,
   removePeer, cleanupWebRTC, setCallbacks
 } from '../lib/webrtc.js';
@@ -322,6 +322,13 @@ function buildRoomHTML(room, user) {
           </svg>
         </button>
 
+        <button class="control-btn" id="flip-cam-btn" title="Flip Camera" style="display:none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+        </button>
+
         <div class="control-divider"></div>
 
         <button class="control-btn" id="screen-btn" title="Screen Share">
@@ -447,6 +454,20 @@ function setupControls(roomId, socket, user) {
     const btn = document.getElementById('cam-btn');
     btn.classList.toggle('muted', !camEnabled);
     document.getElementById('cam-status-icon').style.opacity = camEnabled ? '1' : '0.3';
+  });
+
+  // Flip Camera
+  const flipBtn = document.getElementById('flip-cam-btn');
+  // Only show on mobile where facing mode is usually relevant
+  if (window.innerWidth <= 768) {
+    flipBtn.style.display = 'flex';
+  }
+  flipBtn.addEventListener('click', async () => {
+    if (!camEnabled) return; // Only flip if camera is on
+    const success = await flipCamera();
+    if (!success) {
+      console.warn('Failed to flip camera');
+    }
   });
 
   // Screen share
