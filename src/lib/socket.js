@@ -9,7 +9,7 @@ export function connectSocket() {
   const token = getToken();
   if (!token) return null;
 
-  const SOCKET_URL = undefined;
+  const SOCKET_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://nexuslink-zjp3.onrender.com' : undefined);
 
   socket = io(SOCKET_URL, {
     auth: { token },

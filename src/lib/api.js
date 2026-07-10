@@ -1,6 +1,6 @@
 import { getToken } from './router.js';
 
-const API_BASE = '';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://nexuslink-zjp3.onrender.com' : '');
 const BASE_URL = `${API_BASE}/api`;
 
 async function request(endpoint, options = {}) {
