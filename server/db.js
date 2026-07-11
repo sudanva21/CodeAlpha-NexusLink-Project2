@@ -8,7 +8,10 @@ export const connectDB = async () => {
       return;
     }
     const conn = await mongoose.connect(config.mongoUri);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected:`);
+    console.log(`   - URI: ${config.mongoUri.replace(/:([^:@]{3,})@/, ':***@')}`);
+    console.log(`   - Cluster Host: ${conn.connection.host}`);
+    console.log(`   - Database Name: ${conn.connection.name}`);
   } catch (error) {
     console.error(`❌ Error connecting to MongoDB: ${error.message}`);
     process.exit(1);
