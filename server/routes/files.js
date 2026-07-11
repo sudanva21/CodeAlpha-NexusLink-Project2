@@ -5,6 +5,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth.js';
 import config from '../config.js';
+import File from '../models/File.js';
 
 const router = Router();
 
@@ -28,18 +29,15 @@ const upload = multer({
   limits: { fileSize: config.upload.maxSize },
 });
 
-// In-memory file metadata store
-const fileStore = new Map();
-
 // Upload file
-router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
+router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const fileId = uuidv4().split('-')[0];
-    const fileMeta = {
+    const fileMeta = await File.create({
       id: fileId,
       originalName: req.file.originalname,
       filename: req.file.filename,
@@ -47,10 +45,9 @@ router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
       mimetype: req.file.mimetype,
       uploadedBy: { id: req.user.id, username: req.user.username },
       roomId: req.body.roomId || null,
-      uploadedAt: new Date().toISOString(),
-    };
+      uploadedAt: new Date(),
+    });
 
-    fileStore.set(fileId, fileMeta);
     res.status(201).json(fileMeta);
   } catch (err) {
     console.error('Upload error:', err);
@@ -59,29 +56,34 @@ router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
 });
 
 // Download file
-router.get('/:id', authenticateToken, (req, res) => {
-  const fileMeta = fileStore.get(req.params.id);
-  if (!fileMeta) {
-    return res.status(404).json({ error: 'File not found' });
-  }
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const fileMeta = await File.findOne({ id: req.params.id });
+    if (!fileMeta) {
+      return res.status(404).json({ error: 'File not found' });
+    }
 
-  const filePath = path.join(uploadDir, fileMeta.filename);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'File no longer exists' });
-  }
+    const filePath = path.join(uploadDir, fileMeta.filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File no longer exists' });
+    }
 
-  res.download(filePath, fileMeta.originalName);
+    res.download(filePath, fileMeta.originalName);
+  } catch (err) {
+    console.error('Download error:', err);
+    res.status(500).json({ error: 'Download failed' });
+  }
 });
 
 // List files for a room
-router.get('/room/:roomId', authenticateToken, (req, res) => {
-  const files = [];
-  for (const [, file] of fileStore) {
-    if (file.roomId === req.params.roomId) {
-      files.push(file);
-    }
+router.get('/room/:roomId', authenticateToken, async (req, res) => {
+  try {
+    const files = await File.find({ roomId: req.params.roomId });
+    res.json(files);
+  } catch (err) {
+    console.error('List files error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
-  res.json(files);
 });
 
 export default router;

@@ -1,4 +1,4 @@
-import { rooms } from '../routes/rooms.js';
+import Room from '../models/Room.js';
 
 export function setupSignaling(io) {
   const roomUsers = new Map(); // roomId -> Map(socketId -> userInfo)
@@ -7,12 +7,13 @@ export function setupSignaling(io) {
     console.log(`[+] User connected: ${socket.user.username} (${socket.id})`);
 
     // Join room
-    socket.on('join-room', ({ roomId }) => {
-      const room = rooms.get(roomId);
-      if (!room) {
-        socket.emit('error-msg', { message: 'Room not found' });
-        return;
-      }
+    socket.on('join-room', async ({ roomId }) => {
+      try {
+        const room = await Room.findOne({ id: roomId });
+        if (!room) {
+          socket.emit('error-msg', { message: 'Room not found' });
+          return;
+        }
 
       const userInfo = getSocketUser(socket);
 
@@ -35,18 +36,25 @@ export function setupSignaling(io) {
           socket.emit('host-not-present');
         }
       }
+      } catch (err) {
+        console.error('Socket join-room error:', err);
+      }
     });
 
     // Host admits user
-    socket.on('admit-user', ({ socketId }) => {
-      const targetSocket = io.sockets.sockets.get(socketId);
-      if (targetSocket && targetSocket.pendingRoomId) {
-        const room = rooms.get(targetSocket.pendingRoomId);
-        if (room) {
-          joinUserToRoom(targetSocket, room, targetSocket.pendingUserInfo, roomUsers, io);
-          targetSocket.pendingRoomId = null;
-          targetSocket.pendingUserInfo = null;
+    socket.on('admit-user', async ({ socketId }) => {
+      try {
+        const targetSocket = io.sockets.sockets.get(socketId);
+        if (targetSocket && targetSocket.pendingRoomId) {
+          const room = await Room.findOne({ id: targetSocket.pendingRoomId });
+          if (room) {
+            joinUserToRoom(targetSocket, room, targetSocket.pendingUserInfo, roomUsers, io);
+            targetSocket.pendingRoomId = null;
+            targetSocket.pendingUserInfo = null;
+          }
         }
+      } catch (err) {
+        console.error('Socket admit-user error:', err);
       }
     });
 
@@ -141,8 +149,12 @@ function joinUserToRoom(socket, room, userInfo, roomUsers, io) {
 
   roomUsers.get(roomId).set(socket.id, userInfo);
 
-  // Update room participants
-  room.participants = Array.from(roomUsers.get(roomId).values());
+  // Update room participants in memory and DB
+  const participants = Array.from(roomUsers.get(roomId).values());
+  Room.findOneAndUpdate(
+    { id: roomId },
+    { $set: { participants: participants } }
+  ).catch(err => console.error('Error updating participants:', err));
 
   // Notify existing users about new peer
   socket.to(roomId).emit('user-joined', userInfo);
@@ -177,12 +189,15 @@ function handleDisconnect(socket, roomUsers, io) {
   if (roomUsers.has(roomId)) {
     roomUsers.get(roomId).delete(socket.id);
 
-    // Update room participants
-    const room = rooms.get(roomId);
-    if (room) {
-      room.participants = Array.from(roomUsers.get(roomId).values());
-      io.to(roomId).emit('participants-updated', room.participants);
-    }
+    // Update room participants in DB
+    Room.findOne({ id: roomId }).then(room => {
+      if (room) {
+        const participants = Array.from(roomUsers.get(roomId).values());
+        room.participants = participants;
+        room.save().catch(err => console.error('Error saving participants:', err));
+        io.to(roomId).emit('participants-updated', participants);
+      }
+    }).catch(err => console.error('Error finding room on disconnect:', err));
 
     // Clean up empty rooms
     if (roomUsers.get(roomId).size === 0) {

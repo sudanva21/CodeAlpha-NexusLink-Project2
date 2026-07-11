@@ -123,12 +123,10 @@ export async function startScreenShare() {
 
     const screenTrack = screenStream.getVideoTracks()[0];
 
-    // Replace video track in all peer connections
+    // Add screen track to all peer connections (triggers renegotiation)
     for (const [, peer] of peers) {
-      const sender = peer.pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (sender) {
-        await sender.replaceTrack(screenTrack);
-      }
+      const sender = peer.pc.addTrack(screenTrack, screenStream);
+      peer.screenSender = sender;
     }
 
     // Handle screen share stop from browser UI
@@ -152,16 +150,11 @@ export async function stopScreenShare() {
   screenStream.getTracks().forEach((t) => t.stop());
   screenStream = null;
 
-  // Replace back to camera track
-  if (localStream) {
-    const videoTrack = localStream.getVideoTracks()[0];
-    if (videoTrack) {
-      for (const [, peer] of peers) {
-        const sender = peer.pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-        if (sender) {
-          await sender.replaceTrack(videoTrack);
-        }
-      }
+  // Remove screen track from all peer connections
+  for (const [, peer] of peers) {
+    if (peer.screenSender) {
+      peer.pc.removeTrack(peer.screenSender);
+      peer.screenSender = null;
     }
   }
 
@@ -183,6 +176,27 @@ function createPeerConnection(remoteSocketId) {
       pc.addTrack(track, localStream);
     });
   }
+
+  if (screenStream) {
+    screenStream.getTracks().forEach((track) => {
+      const sender = pc.addTrack(track, screenStream);
+      if (peers.has(remoteSocketId)) {
+        peers.get(remoteSocketId).screenSender = sender;
+      }
+    });
+  }
+
+  // Handle renegotiation
+  pc.onnegotiationneeded = async () => {
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const socket = getSocket();
+      if (socket) socket.emit('offer', { to: remoteSocketId, offer });
+    } catch (err) {
+      console.error('[WebRTC] Renegotiation error:', err);
+    }
+  };
 
   // Handle ICE candidates
   pc.onicecandidate = (event) => {
@@ -225,13 +239,23 @@ export async function callPeer(remoteSocketId) {
 
 // Handle incoming offer
 export async function handleOffer(from, offer) {
-  const pc = createPeerConnection(from);
-  await pc.setRemoteDescription(new RTCSessionDescription(offer));
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
+  let pc;
+  if (peers.has(from)) {
+    pc = peers.get(from).pc;
+  } else {
+    pc = createPeerConnection(from);
+  }
 
-  const socket = getSocket();
-  socket.emit('answer', { to: from, answer });
+  try {
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    const socket = getSocket();
+    socket.emit('answer', { to: from, answer });
+  } catch (err) {
+    console.error('[WebRTC] Handle offer error:', err);
+  }
 }
 
 // Handle incoming answer

@@ -179,16 +179,40 @@ export async function renderRoom(app, params) {
   });
 
   socket.on('user-screen-sharing', ({ socketId, username, sharing }) => {
-    const tile = document.querySelector(`.video-tile[data-socket-id="${socketId}"]`);
-    if (tile) {
+    // Determine the screen share tile.
+    // If we have multiple tiles for this socketId, the one added later is usually the screen share.
+    // But realistically, we just look for a tile with .screen-share or make the second one screen-share.
+    const tiles = document.querySelectorAll(`.video-tile[data-socket-id="${socketId}"]`);
+    if (tiles.length > 0) {
       if (sharing) {
-        tile.classList.add('screen-share');
+        // If there are multiple streams (camera + screen), the screen is usually the second one
+        const targetTile = tiles.length > 1 ? tiles[1] : tiles[0];
+        targetTile.classList.add('screen-share');
       } else {
-        tile.classList.remove('screen-share');
+        tiles.forEach(t => t.classList.remove('screen-share'));
+        // If there was a second stream tile specifically for the screen share, remove it
+        if (tiles.length > 1) {
+          const screenTile = Array.from(tiles).find(t => t.classList.contains('screen-share') || t !== tiles[0]);
+          if (screenTile) screenTile.remove();
+        }
       }
+      updateVideoGridLayout();
     }
     showToast(`${username} ${sharing ? 'started' : 'stopped'} screen sharing`, 'info');
   });
+
+  // Stop presenting button logic
+  stopPresentingHandler = async () => {
+    const btn = document.getElementById('screen-btn');
+    if (isScreenSharing()) {
+      await stopScreenShare();
+      btn.classList.remove('active');
+      const localShareTile = document.getElementById('local-screen-share');
+      if (localShareTile) localShareTile.remove();
+      updateVideoGridLayout();
+    }
+  };
+  document.getElementById('stop-presenting-btn').addEventListener('click', stopPresentingHandler);
 
   // Load existing files
   try {
@@ -267,6 +291,18 @@ export async function renderRoom(app, params) {
     });
   }
 
+  // Join the room via socket if not local testing
+  if (roomId !== 'local') {
+    socket.emit('join-room', {
+      roomId,
+      user: {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar
+      }
+    });
+  }
+
   // Cleanup function
   return () => {
     socket.emit('leave-room');
@@ -283,12 +319,14 @@ export async function renderRoom(app, params) {
     socket.off('user-left');
     socket.off('participants-updated');
     socket.off('chat-message');
-    socket.off('file-shared');
     socket.off('user-screen-sharing');
+    document.getElementById('stop-presenting-btn')?.removeEventListener('click', stopPresentingHandler);
     disconnectSocket();
     currentPanel = null;
   };
 }
+
+let stopPresentingHandler = null;
 
 function buildRoomHTML(room, user) {
   return `
@@ -341,10 +379,26 @@ function buildRoomHTML(room, user) {
       </div>
 
       <!-- Body -->
-      <div class="room-body">
-        <div class="video-area">
+      <div class="room-body" id="room-body">
+        <div class="video-area" id="video-area">
+          <div class="presentation-banner" id="presentation-banner" style="display: none;">
+            <div class="presentation-banner-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <span>You are presenting</span>
+            <button class="presentation-banner-btn" id="stop-presenting-btn">Stop Presenting</button>
+          </div>
+
+          <div class="presentation-stage-container" id="presentation-stage" style="display: none;">
+            <!-- Screen share video will be moved here -->
+          </div>
+
           <div class="video-grid" id="video-grid" data-count="1">
-            <div class="video-tile local pinned" id="local-tile">
+            <div class="video-tile local pinned" id="local-tile" data-socket-id="local">
               <video id="local-video" autoplay muted playsinline></video>
               <div class="video-tile-overlay">
                 <span class="video-tile-name">You (${escapeHtml(user.username)})</span>
@@ -601,13 +655,46 @@ function setupControls(roomId, socket, user) {
     if (isScreenSharing()) {
       await stopScreenShare();
       btn.classList.remove('active');
+      
+      const localShareTile = document.getElementById('local-screen-share');
+      if (localShareTile) localShareTile.remove();
+      updateVideoGridLayout();
     } else {
       const stream = await startScreenShare();
       if (stream) {
         btn.classList.add('active');
+        
+        // Add local screen share tile to grid with .screen-share class so it gets picked up by updateVideoGridLayout
+        const grid = document.getElementById('video-grid');
+        const tile = document.createElement('div');
+        tile.className = 'video-tile screen-share';
+        tile.id = 'local-screen-share';
+        tile.innerHTML = `<video autoplay playsinline muted></video>`;
+        tile.querySelector('video').srcObject = stream;
+        
+        // When user stops screen sharing from the browser's native UI (e.g., Chrome's "Stop sharing" bar)
+        stream.getVideoTracks()[0].addEventListener('ended', () => {
+          btn.classList.remove('active');
+          if (tile.parentElement) tile.remove();
+          updateVideoGridLayout();
+        });
+
+        grid.appendChild(tile);
+        updateVideoGridLayout();
       }
     }
   });
+
+  document.getElementById('stop-presenting-btn').addEventListener('click', async () => {
+    if (isScreenSharing()) {
+      await stopScreenShare();
+      document.getElementById('screen-btn').classList.remove('active');
+      const localShareTile = document.getElementById('local-screen-share');
+      if (localShareTile) localShareTile.remove();
+      updateVideoGridLayout();
+    }
+  });
+
 
   // Whiteboard
   document.getElementById('whiteboard-btn').addEventListener('click', () => {
@@ -841,17 +928,20 @@ function addRemoteVideo(socketId, stream) {
   const grid = document.getElementById('video-grid');
   if (!grid) return;
 
-  // Check if tile already exists
-  let tile = grid.querySelector(`.video-tile[data-socket-id="${socketId}"]`);
+  // Check if tile already exists for this exact stream
+  let tile = grid.querySelector(`.video-tile[data-stream-id="${stream.id}"]`);
   if (tile) {
     const video = tile.querySelector('video');
     if (video) video.srcObject = stream;
     return;
   }
 
+  // If a tile for this socketId exists and isScreenSharing is false? 
+  // We just append a new tile for the new stream.
   tile = document.createElement('div');
   tile.className = 'video-tile';
   tile.dataset.socketId = socketId;
+  tile.dataset.streamId = stream.id;
   tile.innerHTML = `
     <video autoplay playsinline></video>
     <div class="video-tile-overlay">
@@ -861,13 +951,18 @@ function addRemoteVideo(socketId, stream) {
 
   const video = tile.querySelector('video');
   video.srcObject = stream;
+
+  // Listen for track end to clean up tile if screen share stops
+  stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+    if (tile.parentElement) tile.remove();
+    updateVideoGridLayout();
+  });
+
   grid.appendChild(tile);
   
-  // Make remote video pinned by default when they join
   document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned'));
   tile.classList.add('pinned');
   
-  // Add click to pin
   tile.addEventListener('click', () => {
     document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned'));
     tile.classList.add('pinned');
@@ -877,19 +972,53 @@ function addRemoteVideo(socketId, stream) {
 }
 
 function removeRemoteVideo(socketId) {
-  const tile = document.querySelector(`.video-tile[data-socket-id="${socketId}"]`);
-  if (tile) {
+  // Remove ALL tiles for this socketId
+  const tiles = document.querySelectorAll(`.video-tile[data-socket-id="${socketId}"]`);
+  tiles.forEach(tile => {
     const video = tile.querySelector('video');
     if (video) video.srcObject = null;
     tile.remove();
-    updateVideoGridLayout();
-  }
+  });
+  updateVideoGridLayout();
 }
 
 function updateVideoGridLayout() {
   const grid = document.getElementById('video-grid');
-  if (!grid) return;
-  const count = grid.children.length;
+  const videoArea = document.getElementById('video-area');
+  const presentationStage = document.getElementById('presentation-stage');
+  const banner = document.getElementById('presentation-banner');
+  if (!grid || !videoArea || !presentationStage) return;
+
+  const screenShareTile = document.querySelector('.video-tile.screen-share');
+
+  if (screenShareTile) {
+    videoArea.classList.add('presentation-mode');
+    grid.classList.add('presentation-mode-active', 'presentation-filmstrip');
+    presentationStage.style.display = 'flex';
+    
+    if (screenShareTile.parentElement !== presentationStage) {
+      presentationStage.innerHTML = '';
+      presentationStage.appendChild(screenShareTile);
+    }
+
+    if (screenShareTile.id === 'local-screen-share' && banner) {
+      banner.style.display = 'flex';
+    } else if (banner) {
+      banner.style.display = 'none';
+    }
+  } else {
+    videoArea.classList.remove('presentation-mode');
+    grid.classList.remove('presentation-mode-active', 'presentation-filmstrip');
+    presentationStage.style.display = 'none';
+    if (banner) banner.style.display = 'none';
+    
+    // Move tiles back from presentation stage to the grid
+    while (presentationStage.firstChild) {
+      grid.appendChild(presentationStage.firstChild);
+    }
+  }
+
+  const count = grid.querySelectorAll('.video-tile').length;
   grid.dataset.count = Math.min(count, 6);
 }
 
@@ -973,6 +1102,68 @@ function openWhiteboard(roomId) {
     whiteboardEngine.resize();
   }
 }
+
+// Document Picture-in-Picture for Presentation Mode
+let pipWindow = null;
+
+async function enterPiP() {
+  if (pipWindow) return;
+  if (!('documentPictureInPicture' in window)) return;
+  
+  const videoArea = document.getElementById('video-area');
+  if (!videoArea || !videoArea.classList.contains('presentation-mode')) return;
+
+  try {
+    const width = 1024;
+    const height = 768;
+
+    pipWindow = await window.documentPictureInPicture.requestWindow({ width, height });
+
+    // Copy styles
+    Array.from(document.styleSheets).forEach(styleSheet => {
+      try {
+        if (styleSheet.cssRules) {
+          const newStyle = pipWindow.document.createElement('style');
+          Array.from(styleSheet.cssRules).forEach(rule => {
+            newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
+          });
+          pipWindow.document.head.appendChild(newStyle);
+        }
+      } catch (e) {
+        // Cross-origin stylesheet error, ignore
+      }
+    });
+
+    // Move the video area
+    pipWindow.document.body.appendChild(videoArea);
+    pipWindow.document.body.style.margin = '0';
+    pipWindow.document.body.style.background = '#0F0F13';
+    pipWindow.document.body.style.height = '100vh';
+    pipWindow.document.body.style.display = 'flex';
+    pipWindow.document.body.style.flexDirection = 'column';
+
+    pipWindow.addEventListener('pagehide', () => {
+      const roomBody = document.getElementById('room-body');
+      if (roomBody) {
+        // Prepend to put it before side-panel
+        roomBody.insertBefore(videoArea, roomBody.firstChild);
+      }
+      pipWindow = null;
+    });
+
+  } catch (error) {
+    console.error('Failed to enter PiP:', error);
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    enterPiP();
+  } else if (pipWindow) {
+    pipWindow.close();
+    pipWindow = null;
+  }
+});
 
 function closeWhiteboard() {
   document.getElementById('whiteboard-overlay').style.display = 'none';

@@ -4,10 +4,9 @@ import jwt from 'jsonwebtoken';
 import config from '../config.js';
 import { authenticateToken } from '../middleware/auth.js';
 
-const router = Router();
+import User from '../models/User.js';
 
-// In-memory user store
-const users = new Map();
+const router = Router();
 
 function generateToken(user) {
   return jwt.sign(
@@ -42,21 +41,25 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user exists
-    for (const [, user] of users) {
-      if (user.email === email) {
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      if (existingUser.email === email) {
         return res.status(409).json({ error: 'Email already registered' });
       }
-      if (user.username === username) {
-        return res.status(409).json({ error: 'Username already taken' });
-      }
+      return res.status(409).json({ error: 'Username already taken' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const id = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const avatar = generateAvatar(username);
 
-    const user = { id, username, email, password: hashedPassword, avatar, createdAt: new Date().toISOString() };
-    users.set(id, user);
+    const user = await User.create({
+      id,
+      username,
+      email,
+      password: hashedPassword,
+      avatar,
+    });
 
     const token = generateToken(user);
     res.status(201).json({
@@ -78,13 +81,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    let foundUser = null;
-    for (const [, user] of users) {
-      if (user.email === email) {
-        foundUser = user;
-        break;
-      }
-    }
+    const foundUser = await User.findOne({ email });
 
     if (!foundUser) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -107,12 +104,17 @@ router.post('/login', async (req, res) => {
 });
 
 // Get current user
-router.get('/me', authenticateToken, (req, res) => {
-  const user = users.get(req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ id: req.user.id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ id: user.id, username: user.username, email: user.email, avatar: user.avatar });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
-  res.json({ id: user.id, username: user.username, email: user.email, avatar: user.avatar });
 });
 
 export default router;

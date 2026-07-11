@@ -1302,27 +1302,104 @@ h1, h2, h3, h4, h5, h6 {
   grid-template-rows: 1fr 1fr;
 }
 
-/* Screen Share Layout */
-.video-grid:has(.screen-share) {
-  display: grid !important;
-  grid-template-columns: 1fr 280px !important;
-  grid-auto-rows: 157px;
-  align-content: center;
+/* Screen Share Layout (Presentation Mode) */
+.video-area.presentation-mode {
+  flex-direction: row; /* Main stage + sidebar */
 }
 
-.video-grid:has(.screen-share) .video-tile.screen-share {
-  grid-column: 1 / 2 !important;
-  grid-row: 1 / 100 !important;
+@media (max-width: 768px) {
+  .video-area.presentation-mode {
+    flex-direction: column;
+  }
+}
+
+.video-grid.presentation-mode-active {
+  display: flex !important;
+}
+
+@media (max-width: 768px) {
+  .video-grid.presentation-mode-active {
+    display: flex !important;
+  }
+}
+
+.presentation-stage-container {
+  flex: 1;
+  display: flex;
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-lg);
+}
+
+.presentation-stage-container .video-tile.screen-share {
+  width: 100%;
   height: 100%;
+  border: none;
+  border-radius: 0;
 }
 
-.video-grid:has(.screen-share) .video-tile.screen-share video {
+.presentation-stage-container .video-tile.screen-share video {
   object-fit: contain;
   background: #000;
 }
 
-.video-grid:has(.screen-share) .video-tile:not(.screen-share) {
-  grid-column: 2 / 3 !important;
+.presentation-filmstrip {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+@media (max-width: 768px) {
+  .presentation-filmstrip {
+    width: 100%;
+    height: 140px;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    padding-bottom: 4px;
+  }
+  .presentation-filmstrip .video-tile {
+    width: 200px;
+    flex-shrink: 0;
+  }
+}
+
+.presentation-filmstrip::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.presentation-filmstrip::-webkit-scrollbar-track {
+  background: transparent;
+}
+.presentation-filmstrip::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 10px;
+}
+
+/* Ensure local video remains in the grid/filmstrip when presentation mode is active */
+.video-grid.presentation-mode-active > .video-tile.local {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  bottom: auto;
+  right: auto;
+  border-radius: var(--radius-lg);
+  z-index: auto;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .video-grid.presentation-mode-active > .video-tile.local {
+    width: 200px;
+    height: 140px;
+    flex-shrink: 0;
+  }
 }
 
 /* Video tile */
@@ -1393,7 +1470,56 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .video-tile.screen-share {
+  /* Handled in presentation stage */
+}
+
+/* Active Speaker Highlight */
+.video-tile.active-speaker {
   border: 2px solid var(--accent-primary);
+  box-shadow: 0 0 12px rgba(91, 79, 214, 0.4);
+}
+
+/* Presentation Banner */
+.presentation-banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(26, 26, 46, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 150;
+  border: 1px solid var(--border-light);
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  animation: modalIn 0.3s ease;
+}
+
+.presentation-banner-icon {
+  color: var(--accent-primary);
+  display: flex;
+}
+
+.presentation-banner-btn {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.presentation-banner-btn:hover {
+  background: var(--accent-hover);
 }
 
 /* Control bar */

@@ -3,6 +3,7 @@ dotenv.config();
 
 export default {
   port: process.env.PORT || 3001,
+  mongoUri: process.env.MONGODB_URI,
   jwtSecret: process.env.JWT_SECRET || 'fallback_secret_change_me',
   corsOrigins: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : true,
   upload: {
