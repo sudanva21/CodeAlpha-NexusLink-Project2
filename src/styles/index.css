@@ -1247,7 +1247,43 @@ h1, h2, h3, h4, h5, h6 {
   grid-template-columns: 1fr;
 }
 .video-grid[data-count="2"] {
-  grid-template-columns: 1fr 1fr;
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.video-grid[data-count="2"] .video-tile:not(.local) {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  border: none;
+  z-index: 1;
+}
+.video-grid[data-count="2"] .video-tile:not(.local) video {
+  object-fit: contain;
+}
+.video-grid[data-count="2"] .video-tile.local {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 220px;
+  height: 140px;
+  border-radius: var(--radius-lg);
+  z-index: 10;
+  box-shadow: var(--shadow-float);
+  border: 1px solid var(--border-light);
+  transition: all var(--transition-base);
+}
+
+@media (min-width: 1200px) {
+  .video-grid[data-count="2"] .video-tile.local {
+    width: 260px;
+    height: 160px;
+    bottom: 32px;
+    right: 32px;
+  }
 }
 .video-grid[data-count="3"] {
   grid-template-columns: 1fr 1fr;
@@ -1268,6 +1304,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Screen Share Layout */
 .video-grid:has(.screen-share) {
+  display: grid !important;
   grid-template-columns: 1fr 280px !important;
   grid-auto-rows: 157px;
   align-content: center;

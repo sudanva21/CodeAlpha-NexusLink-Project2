@@ -201,12 +201,54 @@ export async function renderRoom(app, params) {
   // --- Control bar event handlers ---
   setupControls(roomId, socket, user);
   
-  // Add click to pin on local tile
+  // Local tile dragging and pinning
   const localTile = document.getElementById('local-tile');
   if (localTile) {
-    localTile.addEventListener('click', () => {
+    // Click to pin
+    localTile.addEventListener('click', (e) => {
+      // Don't pin if we are just finishing a drag
+      if (localTile.dataset.isDragging === 'true') {
+        localTile.dataset.isDragging = 'false';
+        return;
+      }
       document.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned'));
       localTile.classList.add('pinned');
+    });
+
+    // Simple Drag Logic (Mouse only)
+    let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+
+    localTile.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button')) return; // ignore buttons
+      const style = window.getComputedStyle(localTile);
+      if (style.position !== 'absolute') return; // only drag in PiP
+
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
+      isDragging = true;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      initialX = currentX;
+      initialY = currentY;
+      isDragging = false;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+      
+      // If moved more than a few pixels, mark as dragging so click doesn't trigger pin
+      if (Math.abs(currentX - xOffset) > 5 || Math.abs(currentY - yOffset) > 5) {
+        localTile.dataset.isDragging = 'true';
+      }
+      
+      xOffset = currentX;
+      yOffset = currentY;
+      localTile.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
     });
   }
 
