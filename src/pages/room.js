@@ -72,9 +72,51 @@ export async function renderRoom(app, params) {
 
   // Socket event handlers
   socket.on('existing-users', async ({ users }) => {
+    document.getElementById('lobby-overlay').style.display = 'none';
     for (const u of users) {
       await callPeer(u.socketId);
     }
+  });
+
+  socket.on('waiting-for-host', () => {
+    document.getElementById('lobby-overlay').style.display = 'flex';
+  });
+
+  socket.on('join-denied', () => {
+    showToast('Your request to join was denied', 'error');
+    navigateTo('/dashboard');
+  });
+
+  socket.on('join-request', (userInfo) => {
+    const container = document.getElementById('host-requests-container');
+    if (!container) return;
+
+    const reqEl = document.createElement('div');
+    reqEl.className = 'host-request-toast';
+    reqEl.innerHTML = `
+      <div class="request-info">
+        <div class="request-avatar">${escapeHtml(userInfo.username.charAt(0).toUpperCase())}</div>
+        <div class="request-text">
+          <strong>${escapeHtml(userInfo.username)}</strong> wants to join
+        </div>
+      </div>
+      <div class="request-actions">
+        <button class="btn btn-primary btn-sm" id="admit-${userInfo.socketId}">Admit</button>
+        <button class="btn btn-ghost btn-sm" id="deny-${userInfo.socketId}">Deny</button>
+      </div>
+    `;
+
+    container.appendChild(reqEl);
+
+    document.getElementById(\`admit-\${userInfo.socketId}\`).addEventListener('click', () => {
+      socket.emit('admit-user', { socketId: userInfo.socketId });
+      reqEl.remove();
+    });
+
+    document.getElementById(\`deny-\${userInfo.socketId}\`).addEventListener('click', () => {
+      socket.emit('deny-user', { socketId: userInfo.socketId });
+      reqEl.remove();
+    });
   });
 
   socket.on('user-joined', async (userInfo) => {
@@ -433,6 +475,22 @@ function buildRoomHTML(room, user) {
               <span>Room: ${escapeHtml(String(undefined))} </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Host Requests Container -->
+      <div id="host-requests-container" class="host-requests-container"></div>
+      
+      <!-- Lobby Overlay -->
+      <div id="lobby-overlay" class="lobby-overlay" style="display:none;">
+        <div class="lobby-content">
+          <div class="lobby-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <h2>Please wait until a meeting host brings you into the call</h2>
         </div>
       </div>
     </div>

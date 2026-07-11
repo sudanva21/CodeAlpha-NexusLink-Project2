@@ -39,13 +39,15 @@ router.get('/:id', authenticateToken, (req, res) => {
 
 // List rooms
 router.get('/', authenticateToken, (req, res) => {
-  const roomList = Array.from(rooms.values()).map((r) => ({
-    id: r.id,
-    name: r.name,
-    host: r.host,
-    participantCount: r.participants.length,
-    createdAt: r.createdAt,
-  }));
+  const roomList = Array.from(rooms.values())
+    .filter((r) => r.host.id === req.user.id)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      host: r.host,
+      participantCount: r.participants.length,
+      createdAt: r.createdAt,
+    }));
   res.json(roomList);
 });
 

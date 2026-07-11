@@ -14,39 +14,43 @@ export function setupSignaling(io) {
         return;
       }
 
-      socket.join(roomId);
-      socket.roomId = roomId;
+      const userInfo = getSocketUser(socket);
 
-      // Track user in room
-      if (!roomUsers.has(roomId)) {
-        roomUsers.set(roomId, new Map());
+      // If user is the host, join immediately
+      if (room.host.id === socket.user.id) {
+        joinUserToRoom(socket, room, userInfo, roomUsers, io);
+      } else {
+        // Not host: emit join request to the room
+        socket.pendingRoomId = roomId;
+        socket.pendingUserInfo = userInfo;
+        socket.emit('waiting-for-host');
+        
+        // Notify the host (and others) in the room
+        socket.to(roomId).emit('join-request', userInfo);
       }
+    });
 
-      const userInfo = {
-        socketId: socket.id,
-        userId: socket.user.id,
-        username: socket.user.username,
-        avatar: socket.user.avatar,
-      };
+    // Host admits user
+    socket.on('admit-user', ({ socketId }) => {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket && targetSocket.pendingRoomId) {
+        const room = rooms.get(targetSocket.pendingRoomId);
+        if (room) {
+          joinUserToRoom(targetSocket, room, targetSocket.pendingUserInfo, roomUsers, io);
+          targetSocket.pendingRoomId = null;
+          targetSocket.pendingUserInfo = null;
+        }
+      }
+    });
 
-      roomUsers.get(roomId).set(socket.id, userInfo);
-
-      // Update room participants
-      room.participants = Array.from(roomUsers.get(roomId).values());
-
-      // Notify existing users about new peer
-      socket.to(roomId).emit('user-joined', userInfo);
-
-      // Send existing users to the new peer
-      const existingUsers = Array.from(roomUsers.get(roomId).values()).filter(
-        (u) => u.socketId !== socket.id
-      );
-      socket.emit('existing-users', { users: existingUsers, iceServers: getIceServers() });
-
-      // Broadcast updated participant list
-      io.to(roomId).emit('participants-updated', room.participants);
-
-      console.log(`[+] ${socket.user.username} joined room ${roomId} (${room.participants.length} users)`);
+    // Host denies user
+    socket.on('deny-user', ({ socketId }) => {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket) {
+        targetSocket.emit('join-denied');
+        targetSocket.pendingRoomId = null;
+        targetSocket.pendingUserInfo = null;
+      }
     });
 
     // WebRTC signaling: offer
@@ -116,6 +120,36 @@ export function setupSignaling(io) {
       console.log(`[-] User disconnected: ${socket.user.username}`);
     });
   });
+}
+
+function joinUserToRoom(socket, room, userInfo, roomUsers, io) {
+  const roomId = room.id;
+  socket.join(roomId);
+  socket.roomId = roomId;
+
+  // Track user in room
+  if (!roomUsers.has(roomId)) {
+    roomUsers.set(roomId, new Map());
+  }
+
+  roomUsers.get(roomId).set(socket.id, userInfo);
+
+  // Update room participants
+  room.participants = Array.from(roomUsers.get(roomId).values());
+
+  // Notify existing users about new peer
+  socket.to(roomId).emit('user-joined', userInfo);
+
+  // Send existing users to the new peer
+  const existingUsers = Array.from(roomUsers.get(roomId).values()).filter(
+    (u) => u.socketId !== socket.id
+  );
+  socket.emit('existing-users', { users: existingUsers, iceServers: getIceServers() });
+
+  // Broadcast updated participant list
+  io.to(roomId).emit('participants-updated', room.participants);
+
+  console.log(`[+] ${socket.user.username} joined room ${roomId} (${room.participants.length} users)`);
 }
 
 function handleDisconnect(socket, roomUsers, io) {
