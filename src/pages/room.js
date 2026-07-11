@@ -214,12 +214,27 @@ export async function renderRoom(app, params) {
   };
   document.getElementById('stop-presenting-btn').addEventListener('click', stopPresentingHandler);
 
-  // Load existing files
+  // Load existing data
   try {
+    const historicalMessages = await api.getRoomMessages(roomId);
+    for (const msg of historicalMessages) {
+      if (msg.encrypted && msg.message) {
+        try {
+          msg.decryptedText = await decryptMessage(msg.message);
+        } catch {
+          msg.decryptedText = '[Could not decrypt]';
+        }
+      } else {
+        msg.decryptedText = msg.message;
+      }
+      chatMessages.push(msg);
+      appendChatMessage(msg);
+    }
+    
     files = await api.getRoomFiles(roomId);
     renderFileList(files);
   } catch (err) {
-    // ignore
+    console.error('Failed to load initial room data:', err);
   }
 
   // --- Control bar event handlers ---

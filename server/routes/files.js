@@ -47,10 +47,11 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
       roomId: req.body.roomId || null,
       uploadedAt: new Date(),
     });
+    console.log(`[DB] File saved successfully: ${fileMeta.originalName} (${fileId})`);
 
     res.status(201).json(fileMeta);
   } catch (err) {
-    console.error('Upload error:', err);
+    console.error('[DB Error] Upload error:', err);
     res.status(500).json({ error: 'Upload failed' });
   }
 });

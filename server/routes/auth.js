@@ -60,6 +60,7 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       avatar,
     });
+    console.log(`[DB] User created successfully: ${username} (${id})`);
 
     const token = generateToken(user);
     res.status(201).json({
@@ -67,7 +68,7 @@ router.post('/register', async (req, res) => {
       user: { id, username, email, avatar },
     });
   } catch (err) {
-    console.error('Register error:', err);
+    console.error('[DB Error] Register error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

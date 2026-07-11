@@ -1,4 +1,6 @@
 import Room from '../models/Room.js';
+import Message from '../models/Message.js';
+import Participant from '../models/Participant.js';
 
 export function setupSignaling(io) {
   const roomUsers = new Map(); // roomId -> Map(socketId -> userInfo)
@@ -106,14 +108,36 @@ export function setupSignaling(io) {
     });
 
     // Chat message
-    socket.on('chat-message', ({ roomId, message, encrypted }) => {
-      io.to(roomId).emit('chat-message', {
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-        from: getSocketUser(socket),
-        message,
-        encrypted,
-        timestamp: new Date().toISOString(),
-      });
+    socket.on('chat-message', async ({ roomId, message, encrypted }) => {
+      try {
+        const from = getSocketUser(socket);
+        const msgId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        const timestamp = new Date();
+
+        await Message.create({
+          id: msgId,
+          roomId,
+          from: {
+            userId: from.userId,
+            username: from.username,
+            avatar: from.avatar
+          },
+          message,
+          encrypted,
+          timestamp,
+        });
+        console.log(`[DB] Saved chat message from ${from.username} in room ${roomId}`);
+
+        io.to(roomId).emit('chat-message', {
+          id: msgId,
+          from,
+          message,
+          encrypted,
+          timestamp: timestamp.toISOString(),
+        });
+      } catch (err) {
+        console.error('[DB Error] saving chat message:', err);
+      }
     });
 
     // File shared notification
@@ -149,12 +173,26 @@ function joinUserToRoom(socket, room, userInfo, roomUsers, io) {
 
   roomUsers.get(roomId).set(socket.id, userInfo);
 
+  const isHost = room.host.id === userInfo.userId;
+
+  // Track participant in DB
+  Participant.create({
+    userId: userInfo.userId,
+    roomId: roomId,
+    socketId: socket.id,
+    username: userInfo.username,
+    joinTime: Date.now(),
+    role: isHost ? 'Host' : 'Participant'
+  }).then(() => console.log(`[DB] Saved participant join: ${userInfo.username}`))
+    .catch(err => console.error('[DB Error] saving participant join:', err));
+
   // Update room participants in memory and DB
   const participants = Array.from(roomUsers.get(roomId).values());
   Room.findOneAndUpdate(
     { id: roomId },
-    { $set: { participants: participants } }
-  ).catch(err => console.error('Error updating participants:', err));
+    { $set: { participants: participants, active: true } }
+  ).then(() => console.log(`[DB] Updated room ${roomId} participants`))
+   .catch(err => console.error('[DB Error] updating participants:', err));
 
   // Notify existing users about new peer
   socket.to(roomId).emit('user-joined', userInfo);
@@ -194,10 +232,21 @@ function handleDisconnect(socket, roomUsers, io) {
       if (room) {
         const participants = Array.from(roomUsers.get(roomId).values());
         room.participants = participants;
-        room.save().catch(err => console.error('Error saving participants:', err));
+        if (participants.length === 0) {
+          room.active = false;
+        }
+        room.save()
+          .then(() => console.log(`[DB] Updated room ${roomId} on disconnect`))
+          .catch(err => console.error('[DB Error] saving participants on disconnect:', err));
         io.to(roomId).emit('participants-updated', participants);
       }
-    }).catch(err => console.error('Error finding room on disconnect:', err));
+    }).catch(err => console.error('[DB Error] finding room on disconnect:', err));
+
+    Participant.findOneAndUpdate(
+      { socketId: socket.id, roomId: roomId, leaveTime: null },
+      { $set: { leaveTime: Date.now() } }
+    ).then(() => console.log(`[DB] Saved participant leave: ${socket.id}`))
+     .catch(err => console.error('[DB Error] saving participant leave:', err));
 
     // Clean up empty rooms
     if (roomUsers.get(roomId).size === 0) {

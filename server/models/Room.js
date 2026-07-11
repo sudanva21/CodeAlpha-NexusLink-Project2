@@ -14,6 +14,7 @@ const roomSchema = new mongoose.Schema(
     },
     participants: { type: Array, default: [] },
     files: { type: Array, default: [] },
+    active: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

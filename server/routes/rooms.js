@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth.js';
 import Room from '../models/Room.js';
+import Message from '../models/Message.js';
 
 const router = Router();
 
@@ -17,9 +18,10 @@ router.post('/', authenticateToken, async (req, res) => {
       host: { id: req.user.id, username: req.user.username, avatar: req.user.avatar },
     });
     
+    console.log(`[DB] Room created successfully: ${room.name} (${roomId})`);
     res.status(201).json(room);
   } catch (err) {
-    console.error('Create room error:', err);
+    console.error('[DB Error] Create room error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -33,7 +35,18 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     res.json(room);
   } catch (err) {
-    console.error('Get room error:', err);
+    console.error('[DB Error] Get room error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get room messages
+router.get('/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const messages = await Message.find({ roomId: req.params.id }).sort({ timestamp: 1 });
+    res.json(messages);
+  } catch (err) {
+    console.error('[DB Error] Get room messages error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -56,7 +69,7 @@ router.get('/', authenticateToken, async (req, res) => {
     
     res.json(formattedList);
   } catch (err) {
-    console.error('List rooms error:', err);
+    console.error('[DB Error] List rooms error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -72,9 +85,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Only the host can delete the room' });
     }
     await Room.deleteOne({ id: req.params.id });
+    console.log(`[DB] Room deleted successfully: ${req.params.id}`);
     res.json({ message: 'Room deleted' });
   } catch (err) {
-    console.error('Delete room error:', err);
+    console.error('[DB Error] Delete room error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

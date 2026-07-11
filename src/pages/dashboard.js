@@ -18,13 +18,23 @@ export function renderDashboard(app) {
           </div>
         </div>
         <div class="dash-nav-right">
-          <div class="dash-user">
+          <div class="dash-user" id="dash-user-menu">
             <div class="avatar avatar-md" style="background: ${user.avatar?.color || 'var(--bg-tertiary)'}">
               ${user.avatar?.initials || user.username?.slice(0, 2).toUpperCase()}
             </div>
             <span class="dash-user-name">${escapeHtml(user.username)}</span>
+            <div class="dash-dropdown">
+              <button class="btn btn-ghost btn-sm" id="logout-btn-mobile" style="width: 100%; justify-content: flex-start;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Logout
+              </button>
+            </div>
           </div>
-          <button class="btn btn-ghost btn-sm" id="logout-btn">
+          <button class="btn btn-ghost btn-sm" id="logout-btn-desktop">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
               <polyline points="16 17 21 12 16 7"/>
@@ -75,16 +85,47 @@ export function renderDashboard(app) {
           </div>
         </div>
 
-
+        <div class="dash-recent">
+          <div class="dash-rooms-header">
+            <h2>Active Rooms</h2>
+          </div>
+          <div class="room-list">
+            <div class="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              <h3>No active rooms yet</h3>
+              <p>Create or join a room to see it here</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
 
   // Event handlers
-  document.getElementById('logout-btn').addEventListener('click', () => {
+  const handleLogout = () => {
     clearAuth();
     navigateTo('/');
-  });
+  };
+  document.getElementById('logout-btn-desktop').addEventListener('click', handleLogout);
+  document.getElementById('logout-btn-mobile').addEventListener('click', handleLogout);
+
+  // Avatar dropdown toggle for mobile
+  const userMenu = document.getElementById('dash-user-menu');
+  if (userMenu) {
+    userMenu.addEventListener('click', (e) => {
+      // Only toggle on mobile (when desktop logout is hidden)
+      if (window.innerWidth <= 768) {
+        userMenu.classList.toggle('open');
+        e.stopPropagation();
+      }
+    });
+    document.addEventListener('click', () => {
+      userMenu.classList.remove('open');
+    });
+  }
 
   document.getElementById('create-room-btn').addEventListener('click', async () => {
     const name = document.getElementById('room-name').value.trim();
