@@ -79,7 +79,17 @@ export async function renderRoom(app, params) {
   });
 
   socket.on('waiting-for-host', () => {
-    document.getElementById('lobby-overlay').style.display = 'flex';
+    const overlay = document.getElementById('lobby-overlay');
+    overlay.style.display = 'flex';
+    const textEl = overlay.querySelector('h2');
+    if (textEl) textEl.textContent = 'Please wait until a meeting host brings you into the call';
+  });
+
+  socket.on('host-not-present', () => {
+    const overlay = document.getElementById('lobby-overlay');
+    overlay.style.display = 'flex';
+    const textEl = overlay.querySelector('h2');
+    if (textEl) textEl.textContent = 'Waiting for meeting host to start the meeting.';
   });
 
   socket.on('join-denied', () => {

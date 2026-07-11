@@ -20,13 +20,20 @@ export function setupSignaling(io) {
       if (room.host.id === socket.user.id) {
         joinUserToRoom(socket, room, userInfo, roomUsers, io);
       } else {
-        // Not host: emit join request to the room
+        // Not host: check if host is in the room
+        const isHostPresent = room.participants && room.participants.some(p => p.userId === room.host.id);
+
         socket.pendingRoomId = roomId;
         socket.pendingUserInfo = userInfo;
-        socket.emit('waiting-for-host');
-        
-        // Notify the host (and others) in the room
-        socket.to(roomId).emit('join-request', userInfo);
+
+        if (isHostPresent) {
+          socket.emit('waiting-for-host');
+          // Notify the host (and others) in the room
+          socket.to(roomId).emit('join-request', userInfo);
+        } else {
+          // Host is not present yet
+          socket.emit('host-not-present');
+        }
       }
     });
 
@@ -148,6 +155,16 @@ function joinUserToRoom(socket, room, userInfo, roomUsers, io) {
 
   // Broadcast updated participant list
   io.to(roomId).emit('participants-updated', room.participants);
+
+  // If the host just joined, convert waiting users into join requests
+  if (userInfo.userId === room.host.id) {
+    io.sockets.sockets.forEach(s => {
+      if (s.pendingRoomId === roomId && s.pendingUserInfo) {
+        s.emit('waiting-for-host');
+        socket.emit('join-request', s.pendingUserInfo);
+      }
+    });
+  }
 
   console.log(`[+] ${socket.user.username} joined room ${roomId} (${room.participants.length} users)`);
 }

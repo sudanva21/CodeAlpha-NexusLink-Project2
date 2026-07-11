@@ -6,64 +6,7 @@ export function renderDashboard(app) {
 
   const user = getUser();
 
-  async function loadRooms() {
-    try {
-      const rooms = await api.getRooms();
-      const list = document.getElementById('room-list');
-      if (!list) return;
-
-      if (rooms.length === 0) {
-        list.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4">
-                <polygon points="23 7 16 12 23 17 23 7"/>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-              </svg>
-            </div>
-            <p>No active rooms yet. Create one to get started!</p>
-          </div>
-        `;
-        return;
-      }
-
-      list.innerHTML = rooms.map((room) => `
-        <div class="room-item" data-room-id="${room.id}">
-          <div class="room-item-left">
-            <div class="room-item-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="23 7 16 12 23 17 23 7"/>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-              </svg>
-            </div>
-            <div class="room-item-info">
-              <h4>${escapeHtml(room.name)}</h4>
-              <p>Host: ${escapeHtml(room.host.username)} &middot; ID: ${room.id}</p>
-            </div>
-          </div>
-          <div class="room-item-meta">
-            <div class="participant-count">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-              ${room.participantCount}
-            </div>
-            <span class="btn btn-primary btn-sm">Join</span>
-          </div>
-        </div>
-      `).join('');
-
-      // Click to join
-      list.querySelectorAll('.room-item').forEach((item) => {
-        item.addEventListener('click', () => {
-          const roomId = item.dataset.roomId;
-          navigateTo(`/room/${roomId}`);
-        });
-      });
-    } catch (err) {
-      console.error('Failed to load rooms:', err);
-    }
+    // No active rooms display on dashboard
   }
 
   app.innerHTML = `
@@ -133,23 +76,7 @@ export function renderDashboard(app) {
           </div>
         </div>
 
-        <div class="dash-rooms-header">
-          <h2>Active Rooms</h2>
-          <button class="btn btn-ghost btn-sm" id="refresh-rooms">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-            Refresh
-          </button>
-        </div>
 
-        <div id="room-list" class="room-list">
-          <div class="empty-state">
-            <div class="spinner" style="margin: 0 auto;"></div>
-            <p class="mt-4">Loading rooms...</p>
-          </div>
-        </div>
       </div>
     </div>
   `;
@@ -186,16 +113,7 @@ export function renderDashboard(app) {
     if (e.key === 'Enter') document.getElementById('join-room-btn').click();
   });
 
-  document.getElementById('refresh-rooms').addEventListener('click', loadRooms);
-
-  // Load rooms
-  loadRooms();
-
-  // Auto-refresh rooms every 10 seconds
-  const refreshInterval = setInterval(loadRooms, 10000);
-
   return () => {
-    clearInterval(refreshInterval);
   };
 }
 
