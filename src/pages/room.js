@@ -118,12 +118,12 @@ export async function renderRoom(app, params) {
 
     container.appendChild(reqEl);
 
-    document.getElementById(\`admit-\${userInfo.socketId}\`).addEventListener('click', () => {
+    document.getElementById(`admit-${userInfo.socketId}`).addEventListener('click', () => {
       socket.emit('admit-user', { socketId: userInfo.socketId });
       reqEl.remove();
     });
 
-    document.getElementById(\`deny-\${userInfo.socketId}\`).addEventListener('click', () => {
+    document.getElementById(`deny-${userInfo.socketId}`).addEventListener('click', () => {
       socket.emit('deny-user', { socketId: userInfo.socketId });
       reqEl.remove();
     });

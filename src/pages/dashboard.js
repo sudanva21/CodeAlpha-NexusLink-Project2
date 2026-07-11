@@ -7,7 +7,6 @@ export function renderDashboard(app) {
   const user = getUser();
 
     // No active rooms display on dashboard
-  }
 
   app.innerHTML = `
     <div class="dashboard-page">
