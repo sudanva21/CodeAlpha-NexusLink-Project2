@@ -238,8 +238,23 @@ export async function renderRoom(app, params) {
     document.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
       e.preventDefault();
-      currentX = e.clientX - initialX;
-      currentY = e.clientY - initialY;
+      let rawX = e.clientX - initialX;
+      let rawY = e.clientY - initialY;
+      
+      const parent = localTile.parentElement;
+      if (parent) {
+        // Clamp to parent boundaries
+        const maxNegX = -localTile.offsetLeft;
+        const maxPosX = parent.offsetWidth - localTile.offsetLeft - localTile.offsetWidth;
+        const maxNegY = -localTile.offsetTop;
+        const maxPosY = parent.offsetHeight - localTile.offsetTop - localTile.offsetHeight;
+
+        currentX = Math.max(maxNegX, Math.min(rawX, maxPosX));
+        currentY = Math.max(maxNegY, Math.min(rawY, maxPosY));
+      } else {
+        currentX = rawX;
+        currentY = rawY;
+      }
       
       // If moved more than a few pixels, mark as dragging so click doesn't trigger pin
       if (Math.abs(currentX - xOffset) > 5 || Math.abs(currentY - yOffset) > 5) {
